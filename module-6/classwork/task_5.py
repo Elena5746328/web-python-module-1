@@ -9,16 +9,21 @@ network = {
 
 user = "Me"
 
-friends_of_user = network[user]
+friends_of_user = list(network[user])
 friends_of_friends = []
-for i in friends_of_user:
-    friends_of_friends.update(network[i])
+for friend in friends_of_user:
+    for friends_of_friend in network[friend]:
+        if friends_of_friend not in friends_of_friends:
+            friends_of_friends.append(friends_of_friend)
 
 
+result = []
+for person in friends_of_friends:
+    if person != user and person not in friends_of_user:
+        result.append(person)
 
+print(f"Друзья друзей, которых нет в списке: {result}")
 
-
-
-
+        
 
 
