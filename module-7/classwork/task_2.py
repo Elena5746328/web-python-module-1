@@ -92,6 +92,48 @@ for date, name, action in events:
          max_day = date
          max_enters = count
 
+with open("access_report.txt", "w", encoding="utf-8") as report_file:
+    report_file.write("ОТЧЁТ О КОНТРОЛЕ ДОСТУПА\n")
+    report_file.write("=" * 40 + "\n\n")
+
+    report_file.write("СТАТИСТИКА ПО СОТРУДНИКАМ:\n")
+    for name in sorted(stats):
+        enter_count = stats[name]["ENTER"]
+        exit_count = stats[name]["EXIT"]
+
+        if inside[name]:
+            status = "внутри"
+        else:
+            status = "снаружи"
+
+        report_file.write(f"{name}:\n")
+        report_file.write(f"  Входы: {enter_count}\n")
+        report_file.write(f"  Выходы: {exit_count}\n")
+        report_file.write(f"  Статус: {status}\n")
+    report_file.write("\n")
+
+    report_file.write("ЛЮДИ С ОШИБКАМИ ДОСТУПА:\n")
+    if errors:
+        for name in sorted(errors):
+            report_file.write(f"- {name}\n")
+    else:
+        report_file.write("Ошибок не обнаружено.\n")
+    report_file.write("\n")
+
+    report_file.write("КОЛИЧЕСТВО ВХОДОВ ПО ДНЯМ:\n")
+    for date in sorted(daily_enters):
+        count = daily_enters[date]
+        report_file.write(f"{date}: {count} входов\n")
+    report_file.write("\n")
+
+    report_file.write("ДАТА С МАКСИМАЛЬНЫМ КОЛИЧЕСТВОМ ВХОДОВ:\n")
+    if max_day:
+        report_file.write(f"{max_day} — {max_enters} входов\n")
+    else:
+        report_file.write("Нет данных о входах.\n")
+
+print("Отчёт успешно записан в файл 'access_report.txt'")
+
 
 
 
