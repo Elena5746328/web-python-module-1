@@ -75,7 +75,7 @@ class Order:
             lines.append("Состав:")
 
             for name in ingredients_names:
-                list.append(f"- {name}")
+                lines.append(f"- {name}")
             
             lines.append(f"Цена позиции: {item.total_price(ingredients)} руб.")
 
@@ -112,5 +112,194 @@ def create_ingredients():
         "mayonnaise": Ingredient("Майонез", "mayonnaise", 50, 10),
         "tomate": Ingredient("Помидор", "tomate", 20, 5),
         "chicken": Ingredient("Курица", "chicken", 100, 50),
-        "ketchup": Ingredient("кетчуп", "ketchup", 15, 3)
+        "ketchup": Ingredient("Кетчуп", "ketchup", 15, 3),
     }
+
+def create_stock() -> dict[str, int]:
+        return {
+        "dough": 10,
+        "cheese": 10,
+        "mayonnaise": 10,
+        "tomate": 10,
+        "chicken": 10,
+        "ketchup": 10
+    }
+
+def get_topping() -> list[str]:
+    return [
+        "tomate", 
+        "mayonnaise", 
+        "chicken", 
+        "ketchup"
+    ]
+
+def create_custom_recipe(inventory: Inventory) -> Recipe:
+    builder = PizzaBuilder()
+
+    print("Создание своей пиццы")
+    for key in get_topping():
+        ingredient = inventory.ingredients[key]
+
+        choice = input(f"Хотите добавить {ingredient.name}") #Да/Нет
+        if choice == "да":
+            builder.add_ingredient(ingredient.key)
+
+    return builder.build()
+
+
+class Inventory:
+    def __init__(self, ingredients: dict[str, Ingredient], stock: dict[str, int]):
+        self.ingredients = ingredients
+        self.stock = stock
+
+    def has_enough(self, ingredient_keys: list[str], quantity: int) -> bool:
+        for key in ingredient_keys:
+            if self.stock.get(key, 0) < quantity:
+                return False
+        return True
+    
+    def reduce_stock(self, ingredient_keys: list[str], quantity: int):
+        for key in ingredient_keys:
+            self.stock[key] -= quantity
+
+    def show(self):
+        print("Наличие ингредиентов")
+
+        for key, count in self.stock.items():
+            ingredient = self.ingredients[key]
+            print(f"{ingredient.name}: {count}")
+
+class SalesReport:
+    def __init__(self):
+        self.profit = 0
+        self.revenue = 0
+        self.sold_count = 0
+
+    def add_order(self, order: Order, ingredients: dict[str, Ingredient]):
+        self.sold_count += sum(item.quantity for item in order.items)
+        self.revenue += order.total_price(ingredients)
+        self.profit += order.total_profit(ingredients)
+
+    def show(self):
+        print("Отчет")
+        print(f"Продано пицц: {self.sold_count}")
+        print(f"Выручка: {self.profit}")
+        print(f"Доход: {self.revenue}")
+
+def show_menu():
+    print("1. Создать заказ")
+    print("2. Отчет")
+    print("3. Наличие ингредиентов")
+    print("4. Выход")
+
+def show_standart_recipes(
+    recipes: dict[int, Recipe], 
+    ingredients: dict[str, Ingredient]):
+    print("Стандартные пиццы")
+
+    for number, recipe in recipes.items():
+        print(f"{number}. {recipe.name}")
+
+    price = sum(ingredients[key].price for key in recipe.ingredient_keys)
+    print(f"Цена за штуку: {price}")
+
+def choose_recipe(
+    recipes: dict[int, Recipe], 
+    ingredients: dict[str, Ingredient],
+    inventory: Inventory
+):
+    
+    while True:
+        choice = input("Выберите вариант: ")
+        if choice == "0":
+            return create_custom_recipe(inventory)
+        else:
+            return recipes[int(choice)]
+        
+def choose_payment():
+    print("Выберите способ оплаты:")
+    print("1 - Наличные")
+    print("2 - Карта")
+
+    while True:
+        choice = input("Выберите: ")
+
+        if choice == "1":
+            return CashPayment(), "Наличные"
+        elif choice == "2":
+            return CardPayment(), "Карта"
+        
+        print("Выберите между 1 и 2 вариантом")
+
+
+
+def create_order(
+    ingredients: dict[str, Ingredient],
+    inventory: Inventory, 
+    report: SalesReport,
+    file_saver: FileOrderSaver
+):
+    recipes = RecipeFactory.get_standart_recipes()
+    items: list[OrderItem] = []
+
+    while True:
+        show_standart_recipes(recipes, ingredients)
+
+        recipe = choose_recipe(recipes, ingredients, inventory)
+        quantity = int(input("Введите количество: "))
+
+        if not inventory.has_enough(recipe.ingredient_keys, quantity):
+            print("Недостаточно ингредиентов для заказа.")
+            return 
+        
+        items.append(OrderItem(recipe, quantity))
+
+        more = input("Добавить еще один вид пиццы?")
+
+        if more == "нет":
+            break
+
+    payment_strategy, payment_type = choose_payment()
+
+    order = Order(items, payment_type)
+
+    for item in items:
+        inventory.reduce_stock(item.recipe.ingredient_keys, item.quantity)
+
+    # Сумма заказа
+    amount = order.total_price(ingredients)
+
+    # Оплата
+    print(payment_strategy.pay(amount))
+
+    # Сохранение заказа в файл
+    file_saver.save(order, ingredients)
+
+    # Добавление заказа в отчет
+    report.add_order(order, ingredients)
+
+
+
+def main():
+    ingredients = create_ingredients()
+    stock = create_stock()
+
+    inventory = Inventory(ingredients, stock)
+    report = SalesReport()
+    file_saver = FileOrderSaver()
+
+    while True:
+        show_menu()
+
+        choice = input("Выберите пункт меню")
+        if choice == "1":
+            create_order(ingredients, inventory, report, file_saver)
+        elif choice == "2":
+            report.show()
+        elif choice == "3":
+            inventory.show()
+        elif choice == "4":
+            break
+
+main()
+
