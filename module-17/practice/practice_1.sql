@@ -43,3 +43,78 @@ VALUES
     ('Accounting Automation', 4, 350000, FALSE),
     ('Internal Chat', 1, 150000, TRUE);
 
+-------------
+
+SELECT 
+    name,
+    salary,
+    CASE 
+        WHEN salary >= 150000 THEN 'high'
+        WHEN salary >= 100000 THEN 'middle'
+        ELSE 'low'
+    END AS salary_level
+FROM employees;
+
+-------------
+
+SELECT
+    e.name AS employee_name, 
+    coalesce(d.name, 'Без отдела') AS department_name
+FROM employees e
+LEFT JOIN departments d ON e.department_id = d.id;
+
+-------------
+
+SELECT
+    d.id, 
+    d.name
+FROM departments d
+WHERE EXISTS (
+    SELECT 1 FROM employees e
+    WHERE e.department_id = d.id
+);
+
+-------------
+
+SELECT
+    d.id,
+    d.name
+FROM employees e
+WHERE EXISTS (
+    SELECT 1 FROM projects p
+    WHERE p.employee_id = e.id
+)
+
+-------------
+
+SELECT
+    name AS projects_name,
+    budget,
+    CASE
+        WHEN is_active = true THEN 'active'
+        else 'close'
+    END AS project_status
+FROM projects;
+
+-------------
+
+SELECT
+    e.name AS employee_name,
+    COUNT(p.id) AS projects_count
+FROM employees e
+LEFT JOIN projects p ON p.employee_id = e.id
+GROUP BY e.id, e.name
+ORDER BY projects_count DESC;
+
+-------------
+
+UPDATE projects
+SET budget = budget + 50000
+WHERE is_active = TRUE;
+RETURNING id, name, budget, is_active;
+
+-------------
+
+DELETE FROM projects
+WHERE is_active = FALSE
+RETURNING id, name;
